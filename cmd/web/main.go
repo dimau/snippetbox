@@ -4,31 +4,44 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 )
 
+type application struct {
+	errorLog *log.Logger
+	infoLog *log.Logger
+}
+
+
 func main() {
-	// Используем стандартный пакет "flag"
-	// Объявляем параметр "addr"
-	// В первом аргументе - название ключа командной строки, чье значение парсим
-	// Во втором аргументе - значение по-умолчанию (если ключ не указан)
-	// В третьем аргументе - короткое текстовое объяснение, за что флаг отвечает
 	addr := flag.String("addr", ":4000", "HTTP network address")
-	// Непосредственно выполняем парсинг всех флагов в соответствующие переменные
 	flag.Parse()
 
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+
+	// Initialize a new instance of application containing the dependencies.
+	app := &application{
+		errorLog: errorLog,
+		infoLog: infoLog,
+	}
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", showSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
+	mux.HandleFunc("/", app.home)
+	mux.HandleFunc("/snippet", app.showSnippet)
+	mux.HandleFunc("/snippet/create", app.createSnippet)
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	log.Printf("Starting server on %s", *addr)
+	// Запуск сервера на базе Go
+	srv := &http.Server{
+		Addr: *addr,
+		ErrorLog: errorLog,
+		Handler: mux,
+	}
 
-	// Значение, возвращаемое функцией flag.String(), является указателем на
-	//    текстовое значение флага, а не самим значением.
-	// Поэтому, чтобы получить само текстовое значение, нам нужно добавить перед указателем символ *
-	err := http.ListenAndServe(*addr, mux)
-	log.Fatal(err)
+	infoLog.Printf("Starting server on %s", *addr)
+	err := srv.ListenAndServe()
+	errorLog.Fatal(err)
 }
