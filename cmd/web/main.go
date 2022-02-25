@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"github.com/Dimau/snippetbox/pkg/models/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
@@ -12,8 +13,8 @@ import (
 type application struct {
 	errorLog *log.Logger
 	infoLog *log.Logger
+	snippets *mysql.SnippetModel
 }
-
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
@@ -33,6 +34,7 @@ func main() {
 	app := &application{
 		errorLog: errorLog,
 		infoLog: infoLog,
+		snippets: &mysql.SnippetModel{DB: db},
 	}
 
 	// Запуск сервера на базе Go
