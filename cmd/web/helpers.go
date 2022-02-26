@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -31,3 +32,31 @@ func (app *application) clientError(w http.ResponseWriter, status int) {
 func (app *application) notFound(w http.ResponseWriter) {
 	app.clientError(w, http.StatusNotFound)
 }
+
+func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
+	// По имени файла-шаблона страницы (например, 'home.page.tmpl') достаем из кэша шаблонов
+	//   весь набор необходимых для ее рендеринга файлов с шаблонами (template set)
+	// Если не нашли в кэше соответствующий набор шаблонов, будем отвечать ошибкой сервера
+	ts, ok := app.templateCache[name]
+	if !ok {
+		app.serverError(w, fmt.Errorf("The template %s does not exist", name))
+		return
+	}
+
+	// Инициализируем буфер, в который отрендерим HTML страницу перед отправкой клиенту
+	// Так как у нас есть динамический контент на странице, при рендеринге в runtime могут быть ошибки.
+	// Чтобы отловить ошибку рендеринга и не отправлять клиенту некорректный заголовок "200 OK" с половиной страницы
+	// Мы сначала будем рендерить страницу в буфер, а затем (если нет ошибок) отправлять ее клиенту
+	buf := new(bytes.Buffer)
+
+	// Пытаемся отрендерить HTML страницу с динамическим контентом, результат пишем в буфер
+	err := ts.Execute(buf, td)
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Если рендеринг HTML страницы прошел успешно, пишем содержимое буфера в http.ResponseWriter клиенту
+	buf.WriteTo(w)
+}
+

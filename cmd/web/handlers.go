@@ -21,32 +21,10 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range s {
-		fmt.Fprintf(w, "%v\n", snippet)
-	}
-
-	// Нам нужен путь к файлу с HTML шаблоном конкретной страницы - home.page.tmpl
-	// Также нам нужен путь к файлу с общим лейаутом для всех страниц сайта - base.layout.tmpl
-	// Некоторые части общего лейаута могут быть вынесены
-	//    для удобства переиспользования в отдельный файл - footer.partial.tmpl
-	//files := []string{
-	//	"./ui/html/home.page.tmpl",
-	//	"./ui/html/base.layout.tmpl",
-	//	"./ui/html/footer.partial.tmpl",
-	//}
-	//
-	//// Непосредственно парсим все нужные для формирования конкретной страницы файлы с шаблонами
-	//ts, err := template.ParseFiles(files...)
-	//if err != nil {
-	//	app.serverError(w, err)
-	//	return
-	//}
-	//
-	//// Выполняем файлы с шаблонами и отдаем конечную HTML страницу
-	//err = ts.Execute(w, nil)
-	//if err != nil {
-	//	app.serverError(w, err)
-	//}
+	// Use the new render helper.
+	app.render(w, r, "home.page.tmpl", &templateData{
+		Snippets: s,
+	})
 }
 
 func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
@@ -69,8 +47,10 @@ func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write the snippet data as a plain-text HTTP response body.
-	fmt.Fprintf(w, "%v", s)
+	// Use the new render helper.
+	app.render(w, r, "show.page.tmpl", &templateData{
+		Snippet: s,
+	})
 }
 
 func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
