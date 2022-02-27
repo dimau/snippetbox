@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 )
 
 // The serverError helper writes an error message and stack trace to the errorLog,
@@ -33,6 +34,18 @@ func (app *application) notFound(w http.ResponseWriter) {
 	app.clientError(w, http.StatusNotFound)
 }
 
+// Create an addDefaultData helper. This takes a pointer to a templateData
+// struct, adds the current year to the CurrentYear field, and then returns
+// the pointer. Again, we're not using the *http.Request parameter at the
+// moment, but we will do later in the book.
+func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+	if td == nil {
+		td = &templateData{}
+	}
+	td.CurrentYear = time.Now().Year()
+	return td
+}
+
 func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
 	// По имени файла-шаблона страницы (например, 'home.page.tmpl') достаем из кэша шаблонов
 	//   весь набор необходимых для ее рендеринга файлов с шаблонами (template set)
@@ -50,7 +63,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 	buf := new(bytes.Buffer)
 
 	// Пытаемся отрендерить HTML страницу с динамическим контентом, результат пишем в буфер
-	err := ts.Execute(buf, td)
+	err := ts.Execute(buf, app.addDefaultData(td, r))
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -59,4 +72,3 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 	// Если рендеринг HTML страницы прошел успешно, пишем содержимое буфера в http.ResponseWriter клиенту
 	buf.WriteTo(w)
 }
-
