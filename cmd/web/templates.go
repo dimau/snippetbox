@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/Dimau/snippetbox/pkg/forms"
 	"github.com/Dimau/snippetbox/pkg/models"
 	"html/template"
-	"net/url"
 	"path/filepath"
 	"time"
 )
@@ -14,8 +14,7 @@ import (
 // to it as the build progresses.
 type templateData struct {
 	CurrentYear int
-	FormData    url.Values
-	FormErrors map[string]string
+	Form *forms.Form
 	Snippet *models.Snippet
 	Snippets []*models.Snippet
 }
