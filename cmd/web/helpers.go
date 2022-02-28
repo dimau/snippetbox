@@ -39,10 +39,24 @@ func (app *application) notFound(w http.ResponseWriter) {
 // the pointer. Again, we're not using the *http.Request parameter at the
 // moment, but we will do later in the book.
 func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+	// Если в middleware пришел nil вместо данных для отображения в шаблоне, мы все-равно должны
+	// создать структуру templateData и добавить в нее данные по умолчанию
 	if td == nil {
 		td = &templateData{}
 	}
+
+	// Текущий год мы используем в подвале каждом страницы сайта
 	td.CurrentYear = time.Now().Year()
+
+	// Add the flash message to the template data, if one exists.
+	// Если обработчик HTTP запроса добавлял в сессию куку с flash сообщением
+	// (которое нужно показать только один раз - на следующей странице пользователю)
+	// То достаем это flash сообщение в templateData для отрисовки при рендеринге шаблона страницы
+	// Use the PopString() method to retrieve the value for the "flash" key.
+	// PopString() also deletes the key and value from the session data, so it
+	// acts like a one-time fetch. If there is no matching key in the session
+	// data this will return the empty string.
+	td.Flash = app.session.PopString(r, "flash")
 	return td
 }
 
