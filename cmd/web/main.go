@@ -82,10 +82,13 @@ func main() {
 
 	// Инициализация сервера и роутера на базе пакета net/http
 	srv := &http.Server{
-		Addr: *addr,
-		ErrorLog: errorLog,
-		Handler: app.routes(),
-		TLSConfig: tlsConfig,
+		Addr: *addr,                     // адрес и/или порт
+		ErrorLog: errorLog,              // логгер для ошибок сервера
+		Handler: app.routes(),           // что использовать в качестве handler запросов
+		TLSConfig: tlsConfig,            // конфиги для TLS (HTTPS) соединения
+		IdleTimeout: time.Minute,        // Таймаут сервера по всем запросам
+		ReadTimeout: 5 * time.Second,    // Таймаут сервера по всем запросам
+		WriteTimeout: 10 * time.Second,  // Таймаут сервера по всем запросам
 	}
 
 	// Запуск сервера на базе пакета net/http
