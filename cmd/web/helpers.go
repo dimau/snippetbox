@@ -57,6 +57,11 @@ func (app *application) addDefaultData(td *templateData, r *http.Request) *templ
 	// acts like a one-time fetch. If there is no matching key in the session
 	// data this will return the empty string.
 	td.Flash = app.session.PopString(r, "flash")
+
+	// Add the authentication status to the template data
+	// It's useful for rendering of almost each page of the site
+	td.IsAuthenticated = app.isAuthenticated(r)
+
 	return td
 }
 
@@ -85,4 +90,9 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, name stri
 
 	// Если рендеринг HTML страницы прошел успешно, пишем содержимое буфера в http.ResponseWriter клиенту
 	buf.WriteTo(w)
+}
+
+// Return true if the current request is from authenticated user, otherwise return false.
+func (app *application) isAuthenticated(r *http.Request) bool {
+	return app.session.Exists(r, "authenticatedUserID")
 }
