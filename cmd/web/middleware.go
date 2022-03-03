@@ -8,7 +8,8 @@ import (
 	"net/http"
 )
 
-// Обертка для обработчиков HTTP запросов, которая добавляет в Headers параметры для защиты от XSS атак
+// Обертка для обработчиков HTTP запросов, которая добавляет
+// в Headers параметры для защиты от XSS атак
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
