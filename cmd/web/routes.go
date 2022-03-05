@@ -19,6 +19,7 @@ func (app *application) routes() http.Handler {
 	mux.Get("/user/login", app.session.Enable(app.authenticate(http.HandlerFunc(app.loginUserForm))))
 	mux.Post("/user/login", app.session.Enable(app.authenticate(http.HandlerFunc(app.loginUser))))
 	mux.Post("/user/logout", app.session.Enable(app.authenticate(app.requireAuthentication(http.HandlerFunc(app.logoutUser)))))
+	mux.Get("/ping", http.HandlerFunc(ping))
 
 	// Обработчик для статических файлов
 	fileServer := http.FileServer(http.Dir("./ui/static/"))

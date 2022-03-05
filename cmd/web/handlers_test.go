@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,36 +10,43 @@ import (
 
 func TestPing(t *testing.T) {
 	// ***** Initialization *****
-	// Инициализируем httptest.ResponseRecorder, который будем в тесте использовать вместо http.ResponseWriter
-	rr := httptest.NewRecorder()
+	// Создаем инстанс application структуры, которая хранит все общие зависимости уровня приложения.
+	// Не обязательно инициализировать все поля этой структуры (зависимости приложения),
+	// достаточно только те, без которых не сработает цепочка обработчиков, задействованных в обработке
+	// данного конкретного тестового запроса (в данном примере достаточно mock-а только для логгеров)
+	app := &application{
+		errorLog: log.New(ioutil.Discard, "", 0),
+		infoLog:  log.New(ioutil.Discard, "", 0),
+	}
 
-	// Инициализируем http.Request для использования в тесте
-	r, err := http.NewRequest(http.MethodGet, "/", nil)
+	// Инициализируем тестовый HTTPS сервер (цепляется к случайному порту на машине на время проведения теста),
+	// который будет в качестве обработчика для всех запросов использовать наш роутер - из app.routes()
+	// (соответственно, мы сможем проверить работу приложения от этапа роутинга и до выдачи ответа на запрос
+	ts := httptest.NewTLSServer(app.routes())
+	defer ts.Close()
+
+	// ***** Execution *****
+	// С помощью поля ts.URL получаем фактический адрес и порт, по которому слушает тестовый сервер.
+	// Собираем HTTP запрос с методом GET и path="/ping" и отправляем его в тестовый сервер.
+	// Записываем полученную в ответ структуру типа http.Response в переменную rs
+	rs, err := ts.Client().Get(ts.URL + "/ping")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// ***** Execution *****
-	// Вызываем тестируемый handler (обработчик HTTP запросов) - в нашем случае функция ping
-	ping(rr, r)
-
 	// ***** Validation *****
-	// Вызываем метод Result() у нашего http.ResponseRecorder, чтобы получить http.Response,
-	// сгенерированный проверяемым в тесте обработчиком.
-	// То есть по сути мы получаем и далее проверяем HTTP ответ, который выдал наш handler
-	rs := rr.Result()
-
-	// Проверяем Status Code ответа, полученного от handler. Мы ожидаем = 200 "OK"
+	// Убеждаемся, что HTTP ответ содержит ожидаемый Status Code, в данном случае = 200 "OK"
 	if rs.StatusCode != http.StatusOK {
 		t.Errorf("want %d; got %d", http.StatusOK, rs.StatusCode)
 	}
 
-	// Проверяем тело HTTP ответа от handler. Мы ожидаем его = "OK"
+	// Достаем тело HTTP ответа и убеждаемся, что тело HTTP ответа = "OK"
 	defer rs.Body.Close()
 	body, err := ioutil.ReadAll(rs.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if string(body) != "OK" {
 		t.Errorf("want body to equal %q", "OK")
 	}
