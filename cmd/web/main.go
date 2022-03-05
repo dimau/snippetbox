@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"flag"
+	"github.com/Dimau/snippetbox/pkg/models"
 	"github.com/Dimau/snippetbox/pkg/models/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golangcollege/sessions"
@@ -15,16 +16,34 @@ import (
 )
 
 type contextKey string
+
 const contextKeyIsAuthenticated = contextKey("isAuthenticated")
 
 type application struct {
-	errorLog *log.Logger
-	infoLog *log.Logger
-	session *sessions.Session
-	snippets *mysql.SnippetModel
+	errorLog      *log.Logger
+	infoLog       *log.Logger
+	session       *sessions.Session
 	templateCache map[string]*template.Template
-	users *mysql.UserModel
+	snippets      interface {
+		Insert(string, string, string) (int, error)
+		Get(int) (*models.Snippet, error)
+		Latest() ([]*models.Snippet, error)
+	}
+	users         interface {
+		Insert(string, string, string) error
+		Authenticate(string, string) (int, error)
+		Get(int) (*models.User, error)
+	}
 }
+
+//type application struct {
+//	errorLog      *log.Logger
+//	infoLog       *log.Logger
+//	session       *sessions.Session
+//	templateCache map[string]*template.Template
+//	snippets      *mysql.SnippetModel
+//	users         *mysql.UserModel
+//}
 
 func main() {
 	// Обрабатываем конфигурационные параметры приложения
@@ -59,12 +78,12 @@ func main() {
 
 	// Инициализируем инстанс структуры application, который будет содержать все зависимости для handler-ов HTTP запросов
 	app := &application{
-		errorLog: errorLog,
-		infoLog: infoLog,
-		session: session,
-		snippets: &mysql.SnippetModel{DB: db},
+		errorLog:      errorLog,
+		infoLog:       infoLog,
+		session:       session,
+		snippets:      &mysql.SnippetModel{DB: db},
 		templateCache: templateCache,
-		users: &mysql.UserModel{DB: db},
+		users:         &mysql.UserModel{DB: db},
 	}
 
 	// Initialize a tls.Config struct to hold the non-default TLS settings we want the server to use
@@ -80,18 +99,18 @@ func main() {
 	// so omitting them helps ensure that our server will remain performant under heavy loads.
 	tlsConfig := &tls.Config{
 		PreferServerCipherSuites: true,
-		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+		CurvePreferences:         []tls.CurveID{tls.X25519, tls.CurveP256},
 	}
 
 	// Инициализация сервера и роутера на базе пакета net/http
 	srv := &http.Server{
-		Addr: *addr,                     // адрес и/или порт
-		ErrorLog: errorLog,              // логгер для ошибок сервера
-		Handler: app.routes(),           // что использовать в качестве handler запросов
-		TLSConfig: tlsConfig,            // конфиги для TLS (HTTPS) соединения
-		IdleTimeout: time.Minute,        // Таймаут сервера по всем запросам
-		ReadTimeout: 5 * time.Second,    // Таймаут сервера по всем запросам
-		WriteTimeout: 10 * time.Second,  // Таймаут сервера по всем запросам
+		Addr:         *addr,            // адрес и/или порт
+		ErrorLog:     errorLog,         // логгер для ошибок сервера
+		Handler:      app.routes(),     // что использовать в качестве handler запросов
+		TLSConfig:    tlsConfig,        // конфиги для TLS (HTTPS) соединения
+		IdleTimeout:  time.Minute,      // Таймаут сервера по всем запросам
+		ReadTimeout:  5 * time.Second,  // Таймаут сервера по всем запросам
+		WriteTimeout: 10 * time.Second, // Таймаут сервера по всем запросам
 	}
 
 	// Запуск сервера на базе пакета net/http
