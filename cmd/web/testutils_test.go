@@ -108,7 +108,7 @@ func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, []byt
 // The final parameter to this method is a url.Values object which can contain
 // any data that you want to send in the request body.
 func (ts *testServer) postForm(t *testing.T, urlPath string, form url.Values) (int, http.Header, []byte) {
-	rs, err := ts.Client().PostForm(ts.URL + urlPath, form)
+	rs, err := ts.Client().PostForm(ts.URL+urlPath, form)
 	if err != nil {
 		t.Fatal(err)
 	}
